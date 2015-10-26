@@ -37,9 +37,20 @@ class rpi_nary():
         GPIO.setup(11,GPIO.IN)
 
 
-    def send_gmail (self, from_address, to_address, subject, message, attachment, attachment_name, password):
-        msg = MIMEMultipart()
+    def send_gmail(self, subject, message, attachment):
+        """
+        send gmail via smtp
+        :param subject:
+        :param message:
+        :param attachment:
+        :return:
+        """
+        from_address=self.from_email
+        to_address=self.to_email
+        password=self.password
+        attachment_name = attachment
 
+        msg = MIMEMultipart()
         msg['From'] = from_address
         msg['To'] = to_address
         msg['Subject'] = subject
@@ -48,8 +59,8 @@ class rpi_nary():
 
         msg.attach(MIMEText(body, 'plain'))
 
-        filename = attachment_name
-        attach = open(attachment, "rb")
+        filename = attachment
+        attach = open(filename, "rb")
 
         part = MIMEBase('application', 'octet-stream')
         part.set_payload((attach).read())
@@ -68,6 +79,11 @@ class rpi_nary():
 
 
     def record_video(self, file_name):
+        """
+        record a video and encode to mp4
+        :param file_name:
+        :return: out_file
+        """
         self.camera.start_recording(file_name + '.h264')
         self.camera.wait_recording(self.recording_length)
         self.camera.stop_recording()
@@ -81,14 +97,22 @@ class rpi_nary():
         return out_file
 
     def take_picture(self, file_name):
+        """
+        take a pic
+        :param file_name:
+        :return: out_File
+        """
         out_file = file_name + '.jpg'
         self.camera.capture(out_file)
         return out_file
 
     def startup(self):
+        """
+        take a picture and email it on startup
+        :return:
+        """
         out_file = self.take_picture('startup')
-        self.send_gmail(from_address=self.from_email, to_address=self.to_email, subject='security startup',
-                        message='startup', attachment=out_file, attachment_name=out_file, password=self.password )
+        self.send_gmail(subject='security startup', message='startup', attachment=out_file)
 
     def run(self):
         """
@@ -112,8 +136,7 @@ class rpi_nary():
 
                 n += 1
 
-                self.send_gmail(from_address=self.from_email, to_address=self.to_email, subject='intruder',
-                                message='intruder', attachment=out_file, attachment_name=out_file, password=self.password )
+                self.send_gmail(subject='intruder', message='intruder', attachment=out_file)
 
                 # turn off LED and wait
                 GPIO.output(7, False)
