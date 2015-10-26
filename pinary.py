@@ -45,9 +45,9 @@ class rpi_nary():
         :param attachment:
         :return:
         """
-        from_address=self.from_email
-        to_address=self.to_email
-        password=self.password
+        from_address = self.from_email
+        to_address = self.to_email
+        password = self.password
         attachment_name = attachment
 
         msg = MIMEMultipart()
