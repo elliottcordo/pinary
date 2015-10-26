@@ -14,27 +14,31 @@ import ConfigParser
 
 class rpi_nary():
     """
-
     """
     def __init__(self):
         os.chdir(os.path.dirname(sys.argv[0]))
-        config = ConfigParser.ConfigParser()
-        config.read('conf.cfg')
 
-        self.from_email = config.get('email','from_email')
-        self.to_email = config.get('email','to_email')
-        self.password = config.get('email','password')
-        self.recording_length = config.get('general','recording_length')
-        self.wait_time = config.get('general','wait_time')
+        self.config = ConfigParser.ConfigParser()
+        self.config.read('conf.cfg')
 
+        self.from_email = self.config.get('email','from_email')
+        self.to_email = self.config.get('email','to_email')
+        self.password = self.config.get('email','password')
+        self.recording_length = self.config.get('general','recording_length')
+        self.wait_time = self.config.get('general','wait_time')
+        self.videos_to_store = self.config.get('general','videos_to_store')
+        self.last_vid_seq = self.config.get('general','last_vid_seq')
+        self.archive_path = self.config.get('general', 'archive_path')
 
+        # setup camera
         self.camera = picamera.PiCamera()
 
-        # setup board and camera
+        # setup board
         GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False)
         GPIO.setup(7,GPIO.OUT)
         GPIO.setup(11,GPIO.IN)
+
 
 
     def send_gmail(self, subject, message, attachment):
@@ -48,7 +52,7 @@ class rpi_nary():
         from_address = self.from_email
         to_address = self.to_email
         password = self.password
-        attachment_name = attachment
+        attachment_name = os.path.basename(attachment)
 
         msg = MIMEMultipart()
         msg['From'] = from_address
@@ -59,14 +63,13 @@ class rpi_nary():
 
         msg.attach(MIMEText(body, 'plain'))
 
-        filename = attachment
-        attach = open(filename, "rb")
+        attach = open(attachment, "rb")
 
         part = MIMEBase('application', 'octet-stream')
         part.set_payload((attach).read())
 
         encoders.encode_base64(part)
-        part.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+        part.add_header('Content-Disposition', "attachment; filename= %s" % attachment_name)
 
         msg.attach(part)
 
@@ -84,16 +87,18 @@ class rpi_nary():
         :param file_name:
         :return: out_file
         """
-        self.camera.start_recording(file_name + '.h264')
+        tmp_file = os.path.join(self.archive_path, file_name + '.h264')
+        out_file = os.path.join(self.archive_path, file_name + '.mp4')
+
+        self.camera.start_recording(tmp_file)
         self.camera.wait_recording(self.recording_length)
         self.camera.stop_recording()
-        out_file = file_name + '.mp4'
 
         try:
-            os.remove(out_file )
+            os.remove(out_file)
         except: pass
 
-        os.system('MP4Box -fps 30 -add ' + file_name + '.h264 ' + out_file)
+        os.system('MP4Box -fps 30 -add ' + tmp_file + ' ' + out_file)
         return out_file
 
     def take_picture(self, file_name):
@@ -102,7 +107,8 @@ class rpi_nary():
         :param file_name:
         :return: out_File
         """
-        out_file = file_name + '.jpg'
+        out_file = os.path.join(self.archive_path, file_name + '.jpg')
+
         self.camera.capture(out_file)
         return out_file
 
@@ -123,7 +129,8 @@ class rpi_nary():
         self.startup()
 
         # main loop
-        n = 1
+        n = self.last_vid_seq + 1
+
         while True:
 
             if GPIO.input(11) == 1:
@@ -133,17 +140,19 @@ class rpi_nary():
                 # take picture and email
                 file_name = 'intruder' + str(n)
                 out_file = self.record_video(file_name)
-
-                n += 1
-
                 self.send_gmail(subject='intruder', message='intruder', attachment=out_file)
+
+                # update state in config and increment
+                self.config.set('general', 'last_vid_seq', n)
+                self.config.write(open('conf.cfg', 'wr'))
+                n += 1
 
                 # turn off LED and wait
                 GPIO.output(7, False)
                 sleep(self.wait_time)
 
                 # only save last 50 pics
-                if n > 50:
+                if n > self.videos_to_store:
                     n = 1
 
 if __name__ == "__main__":
