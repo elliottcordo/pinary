@@ -26,8 +26,8 @@ class rpi_nary():
         self.password = self.config.get('email','password')
         self.recording_length = self.config.get('general','recording_length')
         self.wait_time = self.config.get('general','wait_time')
-        self.videos_to_store = self.config.get('general','videos_to_store')
-        self.last_vid_seq = self.config.get('general','last_vid_seq')
+        self.videos_to_store = self.config.get('retention','videos_to_store')
+        self.last_vid_seq = self.config.get('retention','last_vid_seq')
         self.archive_path = self.config.get('general', 'archive_path')
 
         # setup camera
@@ -129,7 +129,7 @@ class rpi_nary():
         self.startup()
 
         # main loop
-        n = self.last_vid_seq + 1
+        n = int(self.last_vid_seq) + 1
 
         while True:
 
