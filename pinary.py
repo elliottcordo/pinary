@@ -129,7 +129,7 @@ class rpi_nary():
         self.startup()
 
         # main loop
-        n = self.last_vid_seq + 1
+        n = int(self.last_vid_seq) + 1
 
         while True:
 
