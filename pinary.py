@@ -10,7 +10,12 @@ from email.MIMEText import MIMEText
 from email.MIMEBase import MIMEBase
 from email import encoders
 import ConfigParser
+import argparse
 
+PARSER = argparse.ArgumentParser()
+PARSER.add_argument("--testmode", help="testmode, send startup and exit",
+                    action="store_true")
+TESTMODE = PARSER.parse_args().testmode
 
 class rpi_nary():
     """
@@ -127,6 +132,9 @@ class rpi_nary():
         """
         # take picture on startup
         self.startup()
+	if TESTMODE:
+            print "test mode"
+	    exit()
 
         # main loop
         n = int(self.last_vid_seq) + 1
